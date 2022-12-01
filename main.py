@@ -19,7 +19,7 @@ def posts_search_vk_api_groups():
     for domain in domains:
         # Смещение для обхода лимита
         offset = 0
-        while offset < 2500:
+        while offset < 2:  # 2500
             # Запрос wall.get
             response = requests.get('https://api.vk.com/method/wall.get',
                                     params={
@@ -41,6 +41,5 @@ def posts_search_vk_api_groups():
 result = posts_search_vk_api_groups()
 
 # Формирование json файла
-with open('vk_dump.json', 'w') as outfile:
-    json.dump(result, outfile, indent=4)
-
+with open('vk_dump.json', 'w', encoding='utf8') as outfile:
+    json.dump(result, outfile, ensure_ascii=False)
