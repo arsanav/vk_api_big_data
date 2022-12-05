@@ -1,6 +1,9 @@
 import time
+from datetime import datetime
 import requests
 import json
+import psycopg2
+import tqdm
 
 
 # Выкачка данных из групп тематики Big Data
@@ -26,7 +29,7 @@ def posts_search_vk_api_groups():
                                         'access_token': token,
                                         'v': version,
                                         'domain': domain,
-                                        #'query': 'большие данные',
+                                        # 'query': 'большие данные',
                                         'count': count,
                                         'offset': offset
                                     }
@@ -38,8 +41,39 @@ def posts_search_vk_api_groups():
     return posts
 
 
-result = posts_search_vk_api_groups()
+def main():
+    # Подключение к БД
+    conn = psycopg2.connect(
+        host="localhost",
+        port=5511,
+        database="intro_bd",
+        user="postgres",
+        password="KJKSZPJ")
 
-# Формирование json файла
-with open('vk_dump.json', 'w', encoding='utf8') as outfile:
-    json.dump(result, outfile, ensure_ascii=False)
+    result = posts_search_vk_api_groups()
+
+    # Формирование json файла (закомментить, если файл не нужен)
+    with open('vk_dump.json', 'w', encoding='utf8') as outfile:
+        json.dump(result, outfile, ensure_ascii=False)
+
+    # with open('vk_dump.json', 'r', encoding='utf8') as f:
+    #     result_json = json.load(f)
+
+    # Фиксация времени
+    c = conn.cursor()
+    start_time = datetime.now()
+    c.execute("begin")
+
+    # Запись в БД
+    for entry in tqdm(result):
+        origin_id = entry["from_id"] + '_' + entry["id"]
+        url = f'vk.com/wall{origin_id}'
+        c.execute(
+            "INSERT INTO data (platform, origin_id, content, origin_name, origin_url, raw_content) VALUES (3, %s, %s, 'Null', %s, 'Null')",
+            (origin_id, entry['text'], url))
+
+    c.execute("commit")
+    print(datetime.now() - start_time)
+
+
+main()
